@@ -10,14 +10,11 @@
             text-align: center;
             background-color: #f0f0f0;
             padding-top: 20vh;
-            overflow: hidden; /* żeby pasek przewijania nie psuł efektu */
+            overflow: hidden;
         }
         
-        h1 {
-            color: #333;
-        }
+        h1 { color: #333; }
 
-        /* Styl okienka powitalnego z którego korzysta JS */
         .hello-message {
             position: fixed;
             top: 50%;
@@ -31,10 +28,9 @@
             text-align: center;
         }
 
-        .hello-message img {
-            max-width: 200px;
-            border-radius: 10px;
-            margin-top: 15px;
+        .emoji-big {
+            font-size: 80px;
+            margin: 10px 0;
         }
     </style>
 </head>
@@ -43,18 +39,15 @@
     <h1>Kliknij gdziekolwiek, żeby rozpocząć... 😈</h1>
     <p>Ostrzeżenie: Ta strona to czysty chaos.</p>
 
-    <!-- Szablon powitania, o który upomina się JS w funkcji showHelloMessage() -->
     <template>
         <div class="hello-message">
             <h2>Niespodzianka!</h2>
             <p>Nie było tak klikać!</p>
-            <!-- Losowy kotek z internetu do okienka -->
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/600px-Cat03.jpg" alt="Kotek">
+            <div class="emoji-big">🤡</div>
         </div>
     </template>
 
     <script>
-        // --- KONFIGURACJA Z PUBLICZNYMI LINKAMI ---
         const SCREEN_WIDTH = window.screen.availWidth
         const SCREEN_HEIGHT = window.screen.availHeight
         const WIN_WIDTH = 480
@@ -71,16 +64,9 @@
 
         const SEARCHES = ['jshop', 'ptoszek', 'ptak', 'kanarek', 'jaczup', 'jak naprawić zepsuty komputer']
         
-        // Zastąpiono lokalne pliki publicznymi linkami, żeby działało na GitHub Pages
+        // Bezpieczne wideo z W3Schools, które nie zablokuje strony
         const VIDEOS = [
-            'https://www.w3schools.com/html/mov_bbb.mp4',
-            'https://upload.wikimedia.org/wikipedia/commons/transcoded/c/c0/Big_Buck_Bunny_4K.webm/Big_Buck_Bunny_4K.webm.360p.vp9.webm'
-        ]
-        
-        // Linki do zdjęć kotów z Wikipedii jako pliki do pobierania
-        const FILE_DOWNLOADS = [
-            'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Cat_November_2010-1a.jpg/600px-Cat_November_2010-1a.jpg',
-            'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/Felis_catus-cat_on_snow.jpg/600px-Felis_catus-cat_on_snow.jpg'
+            'https://www.w3schools.com/html/mov_bbb.mp4'
         ]
 
         const PHRASES = [
@@ -92,18 +78,12 @@
           'eyo eyo eyo eyo eyo eyo eyo'
         ]
 
-        const LOGOUT_SITES = {
-          Wikipedia: ['GET', 'https://en.wikipedia.org/w/index.php?title=Special:UserLogout'],
-          // Uciąłem większość wylogowywań do testów, żeby skrypt ładował się szybciej
-        }
-
         const wins = []
         let interactionCount = 0
 
         const isChildWindow = (window.opener && isParentSameOrigin()) || window.location.search.indexOf('child=true') !== -1
         const isParentWindow = !isChildWindow
 
-        // --- GŁÓWNA INICJALIZACJA ---
         init()
 
         if (isChildWindow) initChildWindow()
@@ -172,7 +152,6 @@
               hideCursor()
               startVideo()
               startAlertInterval()
-              superLogout()
               removeHelloMessage()
               rainbowThemeColor()
               animateUrlWithEmojis()
@@ -181,7 +160,6 @@
           })
         }
 
-        // --- FUNKCJE POMOCNICZE (z Twojego kodu) ---
         function attemptToTakeoverReferrerWindow () {
           if (isParentWindow && window.opener && !isParentSameOrigin()) {
             window.opener.location = `${window.location.origin}/?child=true`
@@ -334,11 +312,16 @@
 
         function hideCursor () { document.querySelector('html').style = 'cursor: none;' }
 
+        // CAŁKOWITA ZMIANA: Zamiast pobierać z zewnątrz, skrypt sam tworzy plik tekstowy
         function triggerFileDownload () {
-          const a = document.createElement('a')
-          a.href = getRandomArrayEntry(FILE_DOWNLOADS)
-          a.download = 'niespodzianka.jpg'
-          a.click()
+          const text = "HEE HAW HEE HAW\nZostałeś strollowany przez Ptoszka!\n\n" + getRandomArrayEntry(ART);
+          const blob = new Blob([text], { type: 'text/plain' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'niespodzianka_od_ptoszka.txt';
+          a.click();
+          URL.revokeObjectURL(url);
         }
 
         function speak (phrase) {
@@ -451,7 +434,6 @@
           return { x: Math.floor(Math.random() * (SCREEN_WIDTH - WIN_WIDTH)), y: Math.floor(Math.random() * (SCREEN_HEIGHT - WIN_HEIGHT)) }
         }
 
-        function superLogout() { /* Wyłączone pętle postów dla bezpieczeństwa przy testach */ }
         function blockBackButton() {
           window.history.pushState(null, "", window.location.href);
           window.onpopstate = function () { window.history.pushState(null, "", window.location.href); };
