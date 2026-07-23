@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Symulator Auta — Interfejs</title>
+<title>BYD — Interfejs Pojazdu</title>
 <style>
   :root {
     --bg: #05060a;
@@ -228,35 +228,35 @@
 
   <div class="hud">
     <header>
-      <h1>◈ Symulator Auta</h1>
-      <div class="status">SYSTEM: <b>ONLINE</b> · TRYB: JAZDA</div>
+      <h1>BYD · Build Your Dreams</h1>
+      <div class="status">NAPĘD: <b>EV</b> · TRYB: NORMAL</div>
     </header>
 
     <div class="gauges">
       <div class="gauge"><div class="val" id="g-speed">0</div><div class="lbl">km/h</div></div>
-      <div class="gauge"><div class="val" id="g-rpm">0</div><div class="lbl">obr/min</div></div>
-      <div class="gauge"><div class="val" id="g-temp">72</div><div class="lbl">°C silnik</div></div>
-      <div class="gauge"><div class="val" id="g-fuel">100</div><div class="lbl">% paliwo</div></div>
+      <div class="gauge"><div class="val" id="g-power">0</div><div class="lbl">kW moc</div></div>
+      <div class="gauge"><div class="val" id="g-range">410</div><div class="lbl">km zasięg</div></div>
+      <div class="gauge"><div class="val" id="g-batt">100</div><div class="lbl">% bateria</div></div>
     </div>
 
-    <div class="hint">Chwyć i obróć duże kółka, aby sterować</div>
+    <div class="hint">Chwyć i obróć duże kółka, aby sterować pojazdem BYD</div>
 
     <div class="controls">
       <div class="wheel" data-ctl="gaz" data-min="0" data-max="100">
         <div class="knob"></div>
-        <div class="dial"><div class="name">Gaz</div><div class="num">0</div></div>
+        <div class="dial"><div class="name">Pedał</div><div class="num">0</div></div>
       </div>
       <div class="wheel" data-ctl="skret" data-min="-45" data-max="45">
         <div class="knob"></div>
         <div class="dial"><div class="name">Skręt</div><div class="num">0</div></div>
       </div>
-      <div class="wheel" data-ctl="bieg" data-min="1" data-max="6">
+      <div class="wheel" data-ctl="tryb" data-min="1" data-max="3">
         <div class="knob"></div>
-        <div class="dial"><div class="name">Bieg</div><div class="num">1</div></div>
+        <div class="dial"><div class="name">Tryb</div><div class="num">ECO</div></div>
       </div>
     </div>
 
-    <footer>PROTOTYP INTERFEJSU · v0.1 (niedopracowany) · GitHub Pages</footer>
+    <footer>BYD VEHICLE INTERFACE · v0.1 (koncept) · GitHub Pages</footer>
   </div>
 
 <script>
@@ -324,7 +324,8 @@ function followLoop() {
 followLoop();
 
 /* ---------- Duże kółka sterujące ---------- */
-const state = { gaz: 0, skret: 0, bieg: 1 };
+const state = { gaz: 0, skret: 0, tryb: 1 };
+const TRYBY = { 1: 'ECO', 2: 'NORMAL', 3: 'SPORT' };
 
 document.querySelectorAll('.wheel').forEach(wheel => {
   const ctl = wheel.dataset.ctl;
@@ -349,7 +350,7 @@ document.querySelectorAll('.wheel').forEach(wheel => {
 
   function render() {
     const val = state[ctl];
-    num.textContent = val;
+    num.textContent = (ctl === 'tryb') ? TRYBY[val] : val;
     const frac = (val - min) / (max - min);
     const deg = frac * 300;                   // 0 = góra, w prawo
     const rad = (deg - 90) * Math.PI / 180;   // pozycja gałki na obwodzie
@@ -382,29 +383,37 @@ document.querySelectorAll('.wheel').forEach(wheel => {
   render();
 });
 
-/* ---------- Symulacja wskaźników ---------- */
+/* ---------- Symulacja wskaźników (EV) ---------- */
 const gSpeed = document.getElementById('g-speed');
-const gRpm = document.getElementById('g-rpm');
-const gTemp = document.getElementById('g-temp');
-const gFuel = document.getElementById('g-fuel');
+const gPower = document.getElementById('g-power');
+const gRange = document.getElementById('g-range');
+const gBatt  = document.getElementById('g-batt');
 
-let speed = 0, rpm = 0, temp = 72, fuel = 100;
+let speed = 0, power = 0, batt = 100;
+const FULL_RANGE = 410; // km przy 100%
 
 setInterval(() => {
   const throttle = state.gaz / 100;
-  const gear = state.bieg;
-  const targetSpeed = throttle * gear * 40;
+  // ECO=1, NORMAL=2, SPORT=3 — więcej mocy i osiągów w wyższym trybie
+  const modeGain = { 1: 0.7, 2: 1.0, 3: 1.4 }[state.tryb];
+  const maxSpeed = 180 * modeGain;
+
+  const targetSpeed = throttle * maxSpeed;
   speed += (targetSpeed - speed) * 0.08;
-  rpm = throttle * (7000 / gear) + speed * 8;
-  temp += ((72 + throttle * 45) - temp) * 0.02;
-  fuel = Math.max(0, fuel - throttle * 0.03);
+
+  // moc silnika elektrycznego (kW), z rekuperacją przy puszczonym pedale
+  const targetPower = throttle > 0.02 ? throttle * 230 * modeGain : -speed * 0.4;
+  power += (targetPower - power) * 0.15;
+
+  // zużycie baterii zależne od mocy pobieranej
+  batt = Math.max(0, batt - Math.max(0, power) * 0.00016);
 
   speedFactor = speed / 220; // wpływ na fale w tle
 
   gSpeed.textContent = Math.round(speed);
-  gRpm.textContent = Math.round(rpm);
-  gTemp.textContent = Math.round(temp);
-  gFuel.textContent = Math.max(0, fuel).toFixed(1);
+  gPower.textContent = Math.round(power);
+  gRange.textContent = Math.round(FULL_RANGE * batt / 100);
+  gBatt.textContent  = batt.toFixed(1);
 }, 60);
 </script>
 </body>
