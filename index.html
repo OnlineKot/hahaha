@@ -1,453 +1,411 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ptoszek Troll</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            text-align: center;
-            background-color: #f0f0f0;
-            padding-top: 20vh;
-            overflow: hidden;
-        }
-        
-        h1 { color: #333; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Symulator Auta — Interfejs</title>
+<style>
+  :root {
+    --bg: #05060a;
+    --panel: rgba(15, 22, 40, 0.55);
+    --accent: #3aa0ff;
+    --accent-2: #1e5fd6;
+    --glow: rgba(58, 160, 255, 0.55);
+    --text: #dbe7ff;
+  }
 
-        .hello-message {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            z-index: 9999;
-            text-align: center;
-        }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        .emoji-big {
-            font-size: 80px;
-            margin: 10px 0;
-        }
-    </style>
+  html, body {
+    height: 100%;
+    background: radial-gradient(circle at 50% 30%, #0a1224 0%, #05060a 70%);
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, sans-serif;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* --- Tło: fale graficzne --- */
+  #waves {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* --- Niebieski, niedopracowany śledzący element --- */
+  #tracker {
+    position: fixed;
+    top: 0; left: 0;
+    width: 90px;
+    height: 90px;
+    z-index: 1;
+    pointer-events: none;
+    will-change: transform;
+  }
+  #tracker .blob {
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 40% 35%, #6fbaff, #1e5fd6 60%, #0b2a5e 100%);
+    /* celowo "niedopracowany" — koślawy, nierówny kształt */
+    border-radius: 47% 53% 40% 60% / 55% 42% 58% 45%;
+    box-shadow: 0 0 40px 10px var(--glow), inset 0 0 20px rgba(255,255,255,0.25);
+    opacity: 0.85;
+    animation: wobble 3.4s ease-in-out infinite;
+    filter: blur(0.4px);
+  }
+  #tracker .ring {
+    position: absolute;
+    inset: -18px;
+    border: 2px dashed rgba(120, 190, 255, 0.5);
+    border-radius: 50%;
+    animation: spin 6s linear infinite;
+  }
+  @keyframes wobble {
+    0%,100% { border-radius: 47% 53% 40% 60% / 55% 42% 58% 45%; }
+    50%     { border-radius: 60% 40% 55% 45% / 42% 60% 40% 58%; }
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* --- Interfejs --- */
+  .hud {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 18px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    backdrop-filter: blur(4px);
+  }
+  header h1 {
+    font-size: 18px;
+    letter-spacing: 3px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #9fc7ff;
+  }
+  header .status {
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: #6d8fc4;
+  }
+  header .status b { color: #4fd08a; }
+
+  /* Panel wskaźników */
+  .gauges {
+    display: flex;
+    gap: 40px;
+    justify-content: center;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .gauge {
+    text-align: center;
+    min-width: 90px;
+  }
+  .gauge .val {
+    font-size: 34px;
+    font-weight: 700;
+    color: #eaf3ff;
+    text-shadow: 0 0 14px var(--glow);
+    font-variant-numeric: tabular-nums;
+  }
+  .gauge .lbl {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: #6d8fc4;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  /* Trzy duże kółka sterujące */
+  .controls {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(20px, 6vw, 90px);
+    flex-wrap: wrap;
+    padding: 20px;
+  }
+  .wheel {
+    position: relative;
+    width: clamp(150px, 22vw, 230px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--panel);
+    border: 2px solid rgba(90, 150, 230, 0.35);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6), inset 0 0 30px rgba(58,160,255,0.1);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    touch-action: none;
+    transition: box-shadow 0.2s, border-color 0.2s;
+  }
+  .wheel:active { cursor: grabbing; }
+  .wheel.active {
+    border-color: var(--accent);
+    box-shadow: 0 10px 50px rgba(0,0,0,0.6), 0 0 60px var(--glow), inset 0 0 30px rgba(58,160,255,0.25);
+  }
+  .wheel .knob {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 20px var(--glow);
+  }
+  .wheel .dial {
+    width: 62%;
+    height: 62%;
+    border-radius: 50%;
+    border: 1px solid rgba(120,180,255,0.25);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .wheel .dial .name {
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #8fb4ec;
+  }
+  .wheel .dial .num {
+    font-size: 28px;
+    font-weight: 700;
+    color: #eaf3ff;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 12px var(--glow);
+  }
+  .wheel::before {
+    /* podziałka */
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    background:
+      repeating-conic-gradient(rgba(120,180,255,0.22) 0deg 1deg, transparent 1deg 30deg);
+    -webkit-mask: radial-gradient(circle, transparent 62%, #000 63%);
+            mask: radial-gradient(circle, transparent 62%, #000 63%);
+  }
+
+  footer {
+    text-align: center;
+    padding: 14px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: #55749f;
+  }
+  .hint {
+    text-align: center;
+    font-size: 12px;
+    color: #6d8fc4;
+    margin-bottom: 6px;
+  }
+</style>
 </head>
 <body>
+  <canvas id="waves"></canvas>
 
-    <h1>Kliknij gdziekolwiek, żeby rozpocząć... 😈</h1>
-    <p>Ostrzeżenie: Ta strona to czysty chaos.</p>
+  <div id="tracker">
+    <div class="ring"></div>
+    <div class="blob"></div>
+  </div>
 
-    <template>
-        <div class="hello-message">
-            <h2>Niespodzianka!</h2>
-            <p>Nie było tak klikać!</p>
-            <div class="emoji-big">🤡</div>
-        </div>
-    </template>
+  <div class="hud">
+    <header>
+      <h1>◈ Symulator Auta</h1>
+      <div class="status">SYSTEM: <b>ONLINE</b> · TRYB: JAZDA</div>
+    </header>
 
-    <script>
-        const SCREEN_WIDTH = window.screen.availWidth
-        const SCREEN_HEIGHT = window.screen.availHeight
-        const WIN_WIDTH = 480
-        const WIN_HEIGHT = 260
-        const VELOCITY = 15
-        const MARGIN = 10
-        const TICK_LENGTH = 50
-        const HIDDEN_STYLE = 'position: fixed; width: 1px; height: 1px; overflow: hidden; top: -10px; left: -10px;'
+    <div class="gauges">
+      <div class="gauge"><div class="val" id="g-speed">0</div><div class="lbl">km/h</div></div>
+      <div class="gauge"><div class="val" id="g-rpm">0</div><div class="lbl">obr/min</div></div>
+      <div class="gauge"><div class="val" id="g-temp">72</div><div class="lbl">°C silnik</div></div>
+      <div class="gauge"><div class="val" id="g-fuel">100</div><div class="lbl">% paliwo</div></div>
+    </div>
 
-        const ART = [
-          `\n┊┊       ☆┊┊┊┊☆┊┊☆\n┊┊┊┊┊ ┈┈┈┈╭━━━━━━╮┊☆\n┊┊ ┈☆ ┈┈┃╳╳╳▕╲▂▂╱▏┊┊\n┈┈☆ ┈┃╳╳╳▕▏▍▕▍▏┊┊\n┈┈╰━┫╳╳╳▕▏╰┻╯▏┊┊\n☆ ┈┈┈┃╳╳╳╳╲▂▂╱┊┊┊\n┊┊☆┊╰┳┳━━┳┳╯┊\n┊   ☆┊\n`,
-          `\n░░▓▓░░░░░░░░▓▓░░\n░▓▒▒▓░░░░░░▓▒▒▓░\n░▓▒▒▒▓░░░░▓▒▒▒▓░\n░▓▒▒▒▒▓▓▓▓▒▒▒▒▓░\n░▓▒▒▒▒▒▒▒▒▒▒▒▒▒▓\n▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓\n▓▒▒▒░▓▒▒▒▒▒░▓▒▒▓\n▓▒▒▒▓▓▒▒▒▓▒▓▓▒▒▓\n▓▒░░▒▒▒▒▒▒▒▒▒░░▓\n▓▒░░▒▓▒▒▓▒▒▓▒░░▓\n░▓▒▒▒▓▓▓▓▓▓▓▒▒▓░\n░░▓▒▒▒▒▒▒▒▒▒▒▓░░\n░░░▓▓▓▓▓▓▓▓▓▓░░░\n`
-        ]
+    <div class="hint">Chwyć i obróć duże kółka, aby sterować</div>
 
-        const SEARCHES = ['jshop', 'ptoszek', 'ptak', 'kanarek', 'jaczup', 'jak naprawić zepsuty komputer']
-        
-        // Bezpieczne wideo z W3Schools, które nie zablokuje strony
-        const VIDEOS = [
-            'https://www.w3schools.com/html/mov_bbb.mp4'
-        ]
+    <div class="controls">
+      <div class="wheel" data-ctl="gaz" data-min="0" data-max="100">
+        <div class="knob"></div>
+        <div class="dial"><div class="name">Gaz</div><div class="num">0</div></div>
+      </div>
+      <div class="wheel" data-ctl="skret" data-min="-45" data-max="45">
+        <div class="knob"></div>
+        <div class="dial"><div class="name">Skręt</div><div class="num">0</div></div>
+      </div>
+      <div class="wheel" data-ctl="bieg" data-min="1" data-max="6">
+        <div class="knob"></div>
+        <div class="dial"><div class="name">Bieg</div><div class="num">1</div></div>
+      </div>
+    </div>
 
-        const PHRASES = [
-          'hello my name is ptoszek, lol',
-          'birds are funny lalalalalalalallalala',
-          'wgl co u cb bo u mn dbr',
-          'knuuurrr eksplozja',
-          'hee haw hee haw hee haw',
-          'eyo eyo eyo eyo eyo eyo eyo'
-        ]
+    <footer>PROTOTYP INTERFEJSU · v0.1 (niedopracowany) · GitHub Pages</footer>
+  </div>
 
-        const wins = []
-        let interactionCount = 0
+<script>
+/* ---------- Fale graficzne w tle ---------- */
+const cv = document.getElementById('waves');
+const ctx = cv.getContext('2d');
+let W, H;
+function resize() {
+  W = cv.width = window.innerWidth;
+  H = cv.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
 
-        const isChildWindow = (window.opener && isParentSameOrigin()) || window.location.search.indexOf('child=true') !== -1
-        const isParentWindow = !isChildWindow
+const waveLayers = [
+  { amp: 55, len: 0.008, speed: 0.9, y: 0.72, color: 'rgba(30, 95, 214, 0.35)' },
+  { amp: 40, len: 0.012, speed: 1.4, y: 0.80, color: 'rgba(58, 160, 255, 0.28)' },
+  { amp: 28, len: 0.02,  speed: 2.1, y: 0.88, color: 'rgba(111, 186, 255, 0.22)' },
+];
 
-        init()
+let t = 0;
+let speedFactor = 0; // rośnie z "gazem"
 
-        if (isChildWindow) initChildWindow()
-        else initParentWindow()
+function drawWaves() {
+  ctx.clearRect(0, 0, W, H);
+  waveLayers.forEach((wl) => {
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    for (let x = 0; x <= W; x += 6) {
+      const y = H * wl.y
+        + Math.sin(x * wl.len + t * wl.speed) * wl.amp
+        + Math.sin(x * wl.len * 0.5 + t * wl.speed * 0.6) * wl.amp * 0.4;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(W, H);
+    ctx.closePath();
+    ctx.fillStyle = wl.color;
+    ctx.fill();
+  });
+  t += 0.015 + speedFactor * 0.05;
+  requestAnimationFrame(drawWaves);
+}
+drawWaves();
 
-        function init () {
-          confirmPageUnload()
-          interceptUserInput(event => {
-            interactionCount += 1
-            event.preventDefault()
-            event.stopPropagation()
+/* ---------- Niebieski, niedopracowany element śledzący ---------- */
+const tracker = document.getElementById('tracker');
+let tx = window.innerWidth / 2, ty = window.innerHeight / 2;
+let px = tx, py = ty;
 
-            if (event.which !== 0) {
-              openWindow()
-              startVibrateInterval()
-              enablePictureInPicture()
-              triggerFileDownload()
-              focusWindows()
-              copySpamToClipboard()
-              speak()
-              startTheramin()
+function moveTracker(x, y) { tx = x; ty = y; }
+window.addEventListener('mousemove', e => moveTracker(e.clientX, e.clientY));
+window.addEventListener('touchmove', e => {
+  if (e.touches[0]) moveTracker(e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: true });
 
-              if (event.key === 'Meta' || event.key === 'Control') {
-                window.print()
-                requestWebauthnAttestation()
-              } else {
-                requestPointerLock()
-                if (!window.ApplePaySession) requestWebauthnAttestation()
-                requestClipboardRead()
-                requestMidiAccess()
-                requestBluetoothAccess()
-                requestUsbAccess()
-                requestSerialAccess()
-                requestHidAccess()
-                requestCameraAndMic()
-                requestFullscreen()
-              }
-            }
-          })
-        }
+function followLoop() {
+  // celowo "leniwe"/niedopracowane podążanie — z opóźnieniem i drganiem
+  px += (tx - px) * 0.06;
+  py += (ty - py) * 0.06;
+  const jitter = Math.sin(Date.now() / 180) * 4; // lekkie drganie
+  tracker.style.transform =
+    'translate(' + (px + jitter) + 'px,' + (py - jitter) + 'px) translate(-50%,-50%)';
+  requestAnimationFrame(followLoop);
+}
+followLoop();
 
-        function initChildWindow () {
-          registerProtocolHandlers()
-          hideCursor()
-          moveWindowBounce()
-          startVideo()
-          detectWindowClose()
-          triggerFileDownload()
-          speak()
-          rainbowThemeColor()
-          animateUrlWithEmojis()
-          interceptUserInput(event => {
-            if (interactionCount === 1) startAlertInterval()
-          })
-        }
+/* ---------- Duże kółka sterujące ---------- */
+const state = { gaz: 0, skret: 0, bieg: 1 };
 
-        function initParentWindow () {
-          showHelloMessage()
-          blockBackButton()
-          fillHistory()
-          startInvisiblePictureInPictureVideo()
-          interceptUserInput(event => {
-            if (interactionCount === 1) {
-              registerProtocolHandlers()
-              attemptToTakeoverReferrerWindow()
-              hideCursor()
-              startVideo()
-              startAlertInterval()
-              removeHelloMessage()
-              rainbowThemeColor()
-              animateUrlWithEmojis()
-              speak('That was a mistake')
-            }
-          })
-        }
+document.querySelectorAll('.wheel').forEach(wheel => {
+  const ctl = wheel.dataset.ctl;
+  const min = parseFloat(wheel.dataset.min);
+  const max = parseFloat(wheel.dataset.max);
+  const knob = wheel.querySelector('.knob');
+  const num = wheel.querySelector('.num');
+  let dragging = false;
 
-        function attemptToTakeoverReferrerWindow () {
-          if (isParentWindow && window.opener && !isParentSameOrigin()) {
-            window.opener.location = `${window.location.origin}/?child=true`
-          }
-        }
+  function setFromAngle(clientX, clientY) {
+    const r = wheel.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    let ang = Math.atan2(clientY - cy, clientX - cx) * 180 / Math.PI + 90;
+    if (ang < 0) ang += 360;                 // 0..360
+    const usable = Math.min(ang, 300);       // martwa strefa 300..360 na dole
+    let val = min + (usable / 300) * (max - min);
+    val = Math.round(val);
+    state[ctl] = val;
+    render();
+  }
 
-        function isParentSameOrigin () {
-          try { return window.opener.location.origin === window.location.origin } catch (err) { return false }
-        }
+  function render() {
+    const val = state[ctl];
+    num.textContent = val;
+    const frac = (val - min) / (max - min);
+    const deg = frac * 300;                   // 0 = góra, w prawo
+    const rad = (deg - 90) * Math.PI / 180;   // pozycja gałki na obwodzie
+    const R = wheel.clientWidth / 2 - 18;
+    const kx = Math.cos(rad) * R;
+    const ky = Math.sin(rad) * R;
+    knob.style.transform = 'translate(' + kx + 'px,' + ky + 'px)';
+  }
 
-        function confirmPageUnload () {
-          window.addEventListener('beforeunload', event => {
-            speak('Please don\'t go!')
-            event.returnValue = true
-          })
-        }
+  function start(e) {
+    dragging = true;
+    wheel.classList.add('active');
+    move(e);
+  }
+  function move(e) {
+    if (!dragging) return;
+    const p = e.touches ? e.touches[0] : e;
+    setFromAngle(p.clientX, p.clientY);
+    if (e.cancelable) e.preventDefault();
+  }
+  function end() { dragging = false; wheel.classList.remove('active'); }
 
-        function registerProtocolHandlers () {
-          if (typeof navigator.registerProtocolHandler !== 'function') return
-          const protocolWhitelist = ['bitcoin', 'geo', 'im', 'irc', 'mailto', 'mms', 'sms', 'ssh', 'tel']
-          const handlerUrl = window.location.href + '/url=%s'
-          protocolWhitelist.forEach(proto => {
-            navigator.registerProtocolHandler(proto, handlerUrl, 'Ptoszek')
-          })
-        }
+  wheel.addEventListener('mousedown', start);
+  window.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', end);
+  wheel.addEventListener('touchstart', start, { passive: false });
+  window.addEventListener('touchmove', move, { passive: false });
+  window.addEventListener('touchend', end);
 
-        function requestCameraAndMic () {
-          if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') return
-          navigator.mediaDevices.enumerateDevices().then(devices => {
-            const cameras = devices.filter((device) => device.kind === 'videoinput')
-            if (cameras.length === 0) return
-            const camera = cameras[cameras.length - 1]
-            navigator.mediaDevices.getUserMedia({
-              deviceId: camera.deviceId, facingMode: ['user', 'environment'], audio: true, video: true
-            }).then(stream => {
-              const track = stream.getVideoTracks()[0]
-              if(window.ImageCapture) {
-                const imageCapture = new window.ImageCapture(track)
-                imageCapture.getPhotoCapabilities().then(() => {
-                  track.applyConstraints({ advanced: [{ torch: true }] })
-                }, () => {})
-              }
-            }, () => {})
-          })
-        }
+  render();
+});
 
-        function animateUrlWithEmojis () {
-          if (window.ApplePaySession) return
-          const rand = Math.random()
-          if (rand < 0.33) animateUrlWithBabies()
-          else if (rand < 0.67) animateUrlWithWave()
-          else animateUrlWithMoons()
+/* ---------- Symulacja wskaźników ---------- */
+const gSpeed = document.getElementById('g-speed');
+const gRpm = document.getElementById('g-rpm');
+const gTemp = document.getElementById('g-temp');
+const gFuel = document.getElementById('g-fuel');
 
-          function animateUrlWithBabies () {
-            const e = ['🏻', '🏼', '🏽', '🏾', '🏿']
-            setInterval(() => {
-              let s = ''; let i; let m;
-              for (i = 0; i < 10; i++) {
-                m = Math.floor(e.length * ((Math.sin((Date.now() / 100) + i) + 1) / 2))
-                s += '👶' + e[m]
-              }
-              window.location.hash = s
-            }, 100)
-          }
+let speed = 0, rpm = 0, temp = 72, fuel = 100;
 
-          function animateUrlWithWave () {
-            setInterval(() => {
-              let i; let n; let s = ''
-              for (i = 0; i < 10; i++) {
-                n = Math.floor(Math.sin((Date.now() / 200) + (i / 2)) * 4) + 4
-                s += String.fromCharCode(0x2581 + n)
-              }
-              window.location.hash = s
-            }, 100)
-          }
+setInterval(() => {
+  const throttle = state.gaz / 100;
+  const gear = state.bieg;
+  const targetSpeed = throttle * gear * 40;
+  speed += (targetSpeed - speed) * 0.08;
+  rpm = throttle * (7000 / gear) + speed * 8;
+  temp += ((72 + throttle * 45) - temp) * 0.02;
+  fuel = Math.max(0, fuel - throttle * 0.03);
 
-          function animateUrlWithMoons () {
-            const f = ['🌑', '🌘', '🌗', '🌖', '🌕', '🌔', '🌓', '🌒']
-            const d = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-            let m = 0
-            setInterval(() => {
-              let s = ''; let x = 0;
-              if (!m) {
-                while (d[x] === 4) { x++ }
-                if (x >= d.length) m = 1
-                else d[x]++
-              } else {
-                while (d[x] === 0) { x++ }
-                if (x >= d.length) m = 0
-                else { d[x]++; if (d[x] === 8) d[x] = 0 }
-              }
-              d.forEach(function (n) { s += f[n] })
-              window.location.hash = s
-            }, 100)
-          }
-        }
+  speedFactor = speed / 220; // wpływ na fale w tle
 
-        function requestPointerLock () {
-          const requestPointerLockApi = (
-            document.body.requestPointerLock || document.body.webkitRequestPointerLock ||
-            document.body.mozRequestPointerLock || document.body.msRequestPointerLock
-          )
-          if(requestPointerLockApi) requestPointerLockApi.call(document.body)
-        }
-
-        function startVibrateInterval () {
-          if (typeof window.navigator.vibrate !== 'function') return
-          setInterval(() => {
-            window.navigator.vibrate(Math.floor(Math.random() * 600))
-          }, 1000)
-        }
-
-        function interceptUserInput (onInput) {
-          document.body.addEventListener('touchstart', onInput, { passive: false })
-          document.body.addEventListener('mousedown', onInput)
-          document.body.addEventListener('mouseup', onInput)
-          document.body.addEventListener('click', onInput)
-          document.body.addEventListener('keydown', onInput)
-        }
-
-        function startInvisiblePictureInPictureVideo () {
-          const video = document.createElement('video')
-          video.src = getRandomArrayEntry(VIDEOS)
-          video.loop = true; video.muted = true; video.style = HIDDEN_STYLE; video.autoplay = true
-          video.play().catch(()=>{})
-          document.body.appendChild(video)
-        }
-
-        function enablePictureInPicture () {
-          const video = document.querySelector('video')
-          if (video && document.pictureInPictureEnabled) {
-            video.style = ''; video.muted = false
-            video.requestPictureInPicture().catch(()=>{})
-            video.play().catch(()=>{})
-          }
-        }
-
-        function focusWindows () {
-          wins.forEach(win => { if (win && !win.closed) win.focus() })
-        }
-
-        function openWindow () {
-          const { x, y } = getRandomCoords()
-          const opts = `width=${WIN_WIDTH},height=${WIN_HEIGHT},left=${x},top=${y}`
-          const win = window.open(window.location.pathname, '', opts)
-          if (!win) return
-          wins.push(win)
-          if (wins.length === 2) setupSearchWindow(win)
-        }
-
-        function hideCursor () { document.querySelector('html').style = 'cursor: none;' }
-
-        // CAŁKOWITA ZMIANA: Zamiast pobierać z zewnątrz, skrypt sam tworzy plik tekstowy
-        function triggerFileDownload () {
-          const text = "HEE HAW HEE HAW\nZostałeś strollowany przez Ptoszka!\n\n" + getRandomArrayEntry(ART);
-          const blob = new Blob([text], { type: 'text/plain' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'niespodzianka_od_ptoszka.txt';
-          a.click();
-          URL.revokeObjectURL(url);
-        }
-
-        function speak (phrase) {
-          if (phrase == null) phrase = getRandomArrayEntry(PHRASES)
-          if('speechSynthesis' in window) {
-            window.speechSynthesis.speak(new window.SpeechSynthesisUtterance(phrase))
-          }
-        }
-
-        function startTheramin () {
-          try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)()
-            const oscillatorNode = audioContext.createOscillator()
-            const gainNode = audioContext.createGain()
-            oscillatorNode.connect(gainNode)
-            gainNode.connect(audioContext.destination)
-            oscillatorNode.start(0)
-
-            document.body.addEventListener('mousemove', event => {
-              const pitch = (event.clientX - document.body.clientWidth / 2) / document.body.clientWidth
-              const volume = (event.clientY - document.body.clientHeight / 2) / document.body.clientHeight
-              oscillatorNode.frequency.value = 50 + pitch * 4000
-              gainNode.gain.value = volume * 3
-            })
-          } catch(e) {}
-        }
-
-        function requestClipboardRead () {
-          try {
-            navigator.clipboard.readText().then(data => {
-              if (!window.ApplePaySession) window.alert("Zabrano ze schowka: '" + data + "'")
-            }, () => {})
-          } catch {}
-        }
-
-        function requestWebauthnAttestation () { /* Uproszczone by uniknąć bloku błędów */ }
-        function requestMidiAccess () { try { navigator.requestMIDIAccess({ sysex: true }) } catch {} }
-        function requestBluetoothAccess () { try { navigator.bluetooth.requestDevice({ acceptAllDevices: true }).catch(()=>{}) } catch {} }
-        function requestUsbAccess () { try { navigator.usb.requestDevice({ filters: [{}] }).catch(()=>{}) } catch {} }
-        function requestSerialAccess () { try { navigator.serial.requestPort({ filters: [] }).catch(()=>{}) } catch {} }
-        function requestHidAccess () { try { navigator.hid.requestDevice({ filters: [] }).catch(()=>{}) } catch {} }
-
-        function moveWindowBounce () {
-          let vx = VELOCITY * (Math.random() > 0.5 ? 1 : -1)
-          let vy = VELOCITY * (Math.random() > 0.5 ? 1 : -1)
-          setInterval(() => {
-            const x = window.screenX; const y = window.screenY
-            if (x < MARGIN) vx = Math.abs(vx)
-            if (x + window.outerWidth > SCREEN_WIDTH - MARGIN) vx = -1 * Math.abs(vx)
-            if (y < MARGIN + 20) vy = Math.abs(vy)
-            if (y + window.outerHeight > SCREEN_HEIGHT - MARGIN) vy = -1 * Math.abs(vy)
-            window.moveBy(vx, vy)
-          }, TICK_LENGTH)
-        }
-
-        function startVideo () {
-          const video = document.createElement('video')
-          video.src = getRandomArrayEntry(VIDEOS)
-          video.autoplay = true; video.loop = true
-          video.style = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: -1;'
-          video.play().catch(()=>{})
-          document.body.appendChild(video)
-        }
-
-        function detectWindowClose () {
-          window.addEventListener('unload', () => {
-            if (window.opener && !window.opener.closed) window.opener.onCloseWindow(window)
-          })
-        }
-
-        function onCloseWindow (win) {
-          const i = wins.indexOf(win)
-          if (i >= 0) wins.splice(i, 1)
-        }
-
-        function showHelloMessage () {
-          const template = document.querySelector('template')
-          if(template) document.body.appendChild(document.importNode(template.content, true))
-        }
-
-        function removeHelloMessage () {
-          const hm = document.querySelector('.hello-message')
-          if(hm) hm.remove()
-        }
-
-        function rainbowThemeColor () {
-          let meta = document.querySelector('meta[name="theme-color"]')
-          if(!meta) {
-            meta = document.createElement('meta'); meta.name = 'theme-color'; document.head.appendChild(meta)
-          }
-          setInterval(() => {
-            meta.setAttribute('content', '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0'))
-          }, 50)
-        }
-
-        function copySpamToClipboard () { clipboardCopy(getRandomArrayEntry(ART) + '\nSprawdz to!') }
-
-        function clipboardCopy(text) {
-          const span = document.createElement('span')
-          span.textContent = text; span.style.position = 'fixed'; span.style.top = '-9999px'
-          document.body.appendChild(span)
-          const selection = window.getSelection(); const range = document.createRange()
-          selection.removeAllRanges(); range.selectNode(span); selection.addRange(range)
-          try { document.execCommand('copy') } catch (err) {}
-          selection.removeAllRanges(); document.body.removeChild(span)
-        }
-
-        function getRandomArrayEntry(arr) { return arr[Math.floor(Math.random() * arr.length)] }
-        function getRandomCoords() {
-          return { x: Math.floor(Math.random() * (SCREEN_WIDTH - WIN_WIDTH)), y: Math.floor(Math.random() * (SCREEN_HEIGHT - WIN_HEIGHT)) }
-        }
-
-        function blockBackButton() {
-          window.history.pushState(null, "", window.location.href);
-          window.onpopstate = function () { window.history.pushState(null, "", window.location.href); };
-        }
-        function fillHistory() {
-          for (let i = 1; i < 20; i++) window.history.pushState({}, '', window.location.pathname + '?h=' + i);
-        }
-        function startAlertInterval() { setInterval(() => { alert("Ups!"); }, 10000); }
-        function setupSearchWindow(win) { win.location.href = `https://www.google.com/search?q=${encodeURIComponent(getRandomArrayEntry(SEARCHES))}`; }
-        function requestFullscreen() {
-          const d = document.documentElement;
-          if (d.requestFullscreen) d.requestFullscreen().catch(()=>{});
-          else if (d.webkitRequestFullScreen) d.webkitRequestFullScreen().catch(()=>{});
-        }
-    </script>
+  gSpeed.textContent = Math.round(speed);
+  gRpm.textContent = Math.round(rpm);
+  gTemp.textContent = Math.round(temp);
+  gFuel.textContent = Math.max(0, fuel).toFixed(1);
+}, 60);
+</script>
 </body>
 </html>
